@@ -18,6 +18,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<jacoco.version>0.8.12</jacoco.version>
+		<sonar-maven-plugin.version>3.11.0.3922</sonar-maven-plugin.version>
 		<maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
 	</properties>
 
@@ -41,7 +42,6 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -57,6 +57,7 @@
 
 	<build>
 		<plugins>
+			<!-- Spring Boot Plugin -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -70,7 +71,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- Surefire : exécute les tests unitaires et charge l'agent JaCoCo -->
+			<!-- Plugin Surefire : Exécute les tests unitaires et transmet l'agent JaCoCo -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -80,7 +81,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- JaCoCo : mesure la couverture et génère target/site/jacoco -->
+			<!-- Plugin JaCoCo : Mesure et génération du rapport de couverture de code -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -103,6 +104,13 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+
+			<!-- Plugin SonarQube : Résout le préfixe 'sonar:sonar' -->
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>${sonar-maven-plugin.version}</version>
 			</plugin>
 		</plugins>
 	</build>
