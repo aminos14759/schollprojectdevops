@@ -59,19 +59,20 @@
 	<!-- Configuration des dépôts cibles Nexus -->
 	<distributionManagement>
 		<repository>
-			<id>nexus-releases</id>
-			<name>Nexus Release Repository</name>
-			<url>http://127.0.0.1:8081/repository/maven-releases/</url>
+			<id>deploymentRepo</id>
+			<name>Nexus Releases</name>
+			<url>http://192.168.33.10:8081/repository/maven-releases/</url>
 		</repository>
 		<snapshotRepository>
-			<id>nexus-snapshots</id>
-			<name>Nexus Snapshot Repository</name>
-			<url>http://127.0.0.1:8081/repository/maven-snapshots/</url>
+			<id>deploymentRepo</id>
+			<name>Nexus Snapshots</name>
+			<url>http://192.168.33.10:8081/repository/maven-snapshots/</url>
 		</snapshotRepository>
 	</distributionManagement>
 
 	<build>
 		<plugins>
+			<!-- Plugin Spring Boot existant -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -85,6 +86,7 @@
 				</configuration>
 			</plugin>
 
+			<!-- Plugin Surefire : Exécute les tests unitaires et transmet l'agent JaCoCo -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -94,6 +96,7 @@
 				</configuration>
 			</plugin>
 
+			<!-- Plugin JaCoCo : Mesure et génération du rapport de couverture de code -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -118,21 +121,22 @@
 				</executions>
 			</plugin>
 
+			<!-- Plugin SonarQube : Résolution de la commande 'mvn sonar:sonar' -->
 			<plugin>
 				<groupId>org.sonarsource.scanner.maven</groupId>
 				<artifactId>sonar-maven-plugin</artifactId>
 				<version>${sonar-maven-plugin.version}</version>
 			</plugin>
 
-			<!-- Plugin Nexus pour le staging et déploiement -->
+			<!-- Plugin Nexus Staging : Aligné sur l'identifiant deploymentRepo -->
 			<plugin>
 				<groupId>org.sonatype.plugins</groupId>
 				<artifactId>nexus-staging-maven-plugin</artifactId>
 				<version>${nexus-staging-maven-plugin.version}</version>
 				<extensions>true</extensions>
 				<configuration>
-					<serverId>nexus-releases</serverId>
-					<nexusUrl>http://127.0.0.1:8081/</nexusUrl>
+					<serverId>deploymentRepo</serverId>
+					<nexusUrl>http://192.168.33.10:8081/</nexusUrl>
 					<autoReleaseAfterClose>true</autoReleaseAfterClose>
 				</configuration>
 			</plugin>
