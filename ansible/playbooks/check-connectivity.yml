@@ -1,0 +1,9 @@
+
+---
+- name: Verify connectivity to Minikube VM
+  hosts: minikube
+  gather_facts: true
+
+  tasks:
+    - name: Check SSH and Python connectivity
+      ansible.builtin.ping:
