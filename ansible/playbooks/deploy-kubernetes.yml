@@ -1,0 +1,87 @@
+
+---
+- name: Deploy Spring Boot backend to Kubernetes
+  hosts: minikube
+  gather_facts: false
+
+  vars:
+    app_name: school-backend
+    dockerhub_user: "{{ lookup('env', 'DOCKERHUB_USER') }}"
+    build_number: "{{ lookup('env', 'BUILD_NUMBER') }}"
+    image_name: "{{ dockerhub_user }}/{{ app_name }}:{{ build_number }}"
+    manifest_dir: "{{ playbook_dir }}/../../k8s"
+
+  tasks:
+    - name: Verify Docker Hub image variables
+      ansible.builtin.assert:
+        that:
+          - dockerhub_user | length > 0
+          - build_number | length > 0
+        fail_msg: "DOCKERHUB_USER ou BUILD_NUMBER est absent."
+
+    - name: Copy Kubernetes manifests to Minikube VM
+      ansible.builtin.copy:
+        src: "{{ manifest_dir }}/"
+        dest: /home/vagrant/k8s/
+        owner: vagrant
+        group: vagrant
+        mode: "0644"
+
+    - name: Configure backend image
+      ansible.builtin.replace:
+        path: /home/vagrant/k8s/deployment.yaml
+        regexp: "image: DOCKERHUB_USER/school-backend:BUILD_NUMBER"
+        replace: "image: {{ image_name }}"
+
+    - name: Apply ConfigMap
+      ansible.builtin.command:
+        cmd: kubectl apply -f /home/vagrant/k8s/configmap.yaml
+      become: true
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
+      register: configmap_result
+      changed_when: "'configured' in configmap_result.stdout or 'created' in configmap_result.stdout"
+
+    - name: Apply backend Deployment
+      ansible.builtin.command:
+        cmd: kubectl apply -f /home/vagrant/k8s/deployment.yaml
+      become: true
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
+      register: deployment_result
+      changed_when: "'configured' in deployment_result.stdout or 'created' in deployment_result.stdout"
+
+    - name: Apply backend Service
+      ansible.builtin.command:
+        cmd: kubectl apply -f /home/vagrant/k8s/service.yaml
+      become: true
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
+      register: service_result
+      changed_when: "'configured' in service_result.stdout or 'created' in service_result.stdout"
+
+    - name: Wait for backend rollout
+      ansible.builtin.command:
+        cmd: kubectl rollout status deployment/school-backend --timeout=180s
+      become: true
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
+      changed_when: false
+
+    - name: Display Kubernetes resources
+      ansible.builtin.command:
+        cmd: kubectl get deployment,pods,services -o wide
+      become: true
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
+      register: resources
+      changed_when: false
+
+    - name: Show deployment result
+      ansible.builtin.debug:
+        var: resources.stdout_lines
