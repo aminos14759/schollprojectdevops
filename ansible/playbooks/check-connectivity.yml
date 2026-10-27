@@ -2,7 +2,7 @@
 ---
 - name: Check connectivity and start Minikube
   hosts: minikube
-  become: false
+  become: true
   gather_facts: false
 
   tasks:
@@ -12,6 +12,7 @@
     - name: Check Minikube installation
       ansible.builtin.command:
         cmd: minikube version
+      become: false
       register: minikube_version
       changed_when: false
 
@@ -19,15 +20,48 @@
       ansible.builtin.debug:
         var: minikube_version.stdout
 
+    - name: Add vagrant user to Docker group
+      ansible.builtin.user:
+        name: vagrant
+        groups: docker
+        append: true
+
+    - name: Check Docker service
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Verify Docker access for vagrant
+      ansible.builtin.command:
+        cmd: docker version
+      become: false
+      become_user: vagrant
+      register: docker_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display Docker access result
+      ansible.builtin.debug:
+        var: docker_check.stderr
+
     - name: Start Minikube
       ansible.builtin.command:
         cmd: minikube start
+      become: false
+      become_user: vagrant
       register: minikube_start
       changed_when: true
+      environment:
+        HOME: /home/vagrant
 
     - name: Wait for Kubernetes nodes to become Ready
       ansible.builtin.command:
         cmd: kubectl wait --for=condition=Ready nodes --all --timeout=180s
+      become: false
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
       register: kubernetes_ready
       changed_when: false
       retries: 3
@@ -37,6 +71,10 @@
     - name: Display Kubernetes nodes
       ansible.builtin.command:
         cmd: kubectl get nodes -o wide
+      become: false
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
       register: kubernetes_nodes
       changed_when: false
 
