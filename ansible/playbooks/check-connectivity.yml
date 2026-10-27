@@ -13,6 +13,9 @@
       ansible.builtin.command:
         cmd: minikube version
       become: false
+      become_user: vagrant
+      environment:
+        HOME: /home/vagrant
       register: minikube_version
       changed_when: false
 
@@ -26,34 +29,41 @@
         groups: docker
         append: true
 
-    - name: Check Docker service
+    - name: Ensure Docker service is running
       ansible.builtin.service:
         name: docker
         state: started
         enabled: true
 
-    - name: Verify Docker access for vagrant
+    - name: Check Docker daemon responsiveness
       ansible.builtin.command:
-        cmd: docker version
+        cmd: docker version --format '{{ "{{" }}.Server.Version{{ "}}" }}'
       become: false
       become_user: vagrant
-      register: docker_check
+      environment:
+        HOME: /home/vagrant
+      register: docker_version
       changed_when: false
-      failed_when: false
+      retries: 3
+      delay: 10
+      until: docker_version.rc == 0
 
-    - name: Display Docker access result
+    - name: Display Docker server version
       ansible.builtin.debug:
-        var: docker_check.stderr
+        var: docker_version.stdout
 
     - name: Start Minikube
       ansible.builtin.command:
         cmd: minikube start
       become: false
       become_user: vagrant
-      register: minikube_start
-      changed_when: true
       environment:
         HOME: /home/vagrant
+      register: minikube_start
+      changed_when: true
+      retries: 2
+      delay: 15
+      until: minikube_start.rc == 0
 
     - name: Wait for Kubernetes nodes to become Ready
       ansible.builtin.command:
@@ -68,7 +78,7 @@
       delay: 10
       until: kubernetes_ready.rc == 0
 
-    - name: Display Kubernetes nodes
+    - name: Get Kubernetes nodes
       ansible.builtin.command:
         cmd: kubectl get nodes -o wide
       become: false
@@ -78,6 +88,6 @@
       register: kubernetes_nodes
       changed_when: false
 
-    - name: Show cluster status
+    - name: Display Kubernetes cluster status
       ansible.builtin.debug:
         var: kubernetes_nodes.stdout_lines
