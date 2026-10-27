@@ -1,9 +1,45 @@
 
 ---
-- name: Verify connectivity to Minikube VM
+- name: Check connectivity and start Minikube
   hosts: minikube
-  gather_facts: true
+  become: false
+  gather_facts: false
 
   tasks:
-    - name: Check SSH and Python connectivity
+    - name: Verify SSH connectivity
       ansible.builtin.ping:
+
+    - name: Check Minikube installation
+      ansible.builtin.command:
+        cmd: minikube version
+      register: minikube_version
+      changed_when: false
+
+    - name: Display Minikube version
+      ansible.builtin.debug:
+        var: minikube_version.stdout
+
+    - name: Start Minikube
+      ansible.builtin.command:
+        cmd: minikube start
+      register: minikube_start
+      changed_when: true
+
+    - name: Wait for Kubernetes nodes to become Ready
+      ansible.builtin.command:
+        cmd: kubectl wait --for=condition=Ready nodes --all --timeout=180s
+      register: kubernetes_ready
+      changed_when: false
+      retries: 3
+      delay: 10
+      until: kubernetes_ready.rc == 0
+
+    - name: Display Kubernetes nodes
+      ansible.builtin.command:
+        cmd: kubectl get nodes -o wide
+      register: kubernetes_nodes
+      changed_when: false
+
+    - name: Show cluster status
+      ansible.builtin.debug:
+        var: kubernetes_nodes.stdout_lines
